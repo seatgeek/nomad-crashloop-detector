@@ -72,10 +72,10 @@ func main() {
 	stopCh := make(chan interface{})
 
 	go signalHandler(stopCh)
-	rescive(conn, queue, stopCh)
+	receive(conn, queue, stopCh)
 }
 
-func rescive(conn *amqp.Connection, queue string, stopCh chan interface{}) {
+func receive(conn *amqp.Connection, queue string, stopCh chan interface{}) {
 	ch, err := conn.Channel()
 	if err != nil {
 		return
