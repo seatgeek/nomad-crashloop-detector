@@ -1,6 +1,6 @@
 # nomad-crashloop-detector
 
-`nomad-crashloop-detector` is a tool meant to detect allocation crash-loops, by consuming the allocation stream from [nomad-crashloop-detector](https://github.com/seatgeek/nomad-crashloop-detector) in RabbitMQ
+`nomad-crashloop-detector` is a tool meant to detect allocation crash-loops, by consuming the allocation stream from [nomad-firehose](https://github.com/seatgeek/nomad-firehose) in RabbitMQ.
 
 ## Running
 
