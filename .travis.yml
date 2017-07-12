@@ -1,0 +1,48 @@
+sudo: required
+
+language: go
+
+go:
+  - 1.8
+
+services:
+  - docker
+
+cache:
+  directories:
+    - vendor/github.com
+    - vendor/go4.org
+    - vendor/golang.org
+    - vendor/gopkg.in
+
+env:
+  global:
+    - CGO_ENABLED=0
+    - GOBUILD="linux-amd64 windows-amd64 darwin-amd64"
+    - secure: "uOOrOpojShUv4mWih2J4JGaGscp81PbNLwoM4RG+HjqM7x9nglWlSUBnWoZ5NvlFAZJrx/3uZArHN3+trssiTCZ3HMn3gNleRRKFre+r97i6CMEMvLARBCzd09YZamTFpzRFLyVVCWRQ4L0dmPQMBswnHeV3l5y8bpUHVPUD9cam/oXynlylFmW6kk985LEEnIAt8Cas0/p1TfKOpSJa+62HtBfOAXzpMv54bCLVxCwtpCTWyTZNhpCpstiG9fIa0VTGdq37yrbDrDY39WBxii9lywOw5uk5vRbMW4t9Xx9qddtjf5mpSMIr9d+tE/xM8PI6sbB1/Sw5Q2X0KxC/i6K4ZwbHEBTZSO2GCFL0XFnwDF9ElUJKtPCTlOQA5QpXwxw2zrMm8yNAojIRE5ELKGZwGc+zI4/WljBvtF1MSo1ubIzfKSeZjUXcC0ydYlDXY7Q9bXVfWTTVZTdbLrkt/yIUHzbqg6caIha2pFwT15H2M+V58Fu43mQ5lmKk7NxjdDqj8uceFJOT+Xn82KFFFufHdzQMNA7wVZ2IHQxjr4gg/Z5895ayM4KgSH58c0XeMNRbKol6Tb9Xws9Bv2ojUAupvU8WnXVvF8Bg9aAB5UtWcgflofhBZSGeoeVxibvyoKSGcfwWk5T6VmYzLU+3Bfg2zBHLc/k20am7FmJ+t1c="
+    - secure: "TanjWSQLzQINxXgmXQZrxhfJDeNxLRtcAuoSrMg3qNaUw5vm7zGF7ERQqu39cwb54UUMgwKY3Nf7m7Hgm6zu8V+xY/jfEgPYBDb99lQMKPWaN6Zv6mHSgaE93ihv2B9aHLSus61W5bYmtNQZbRAjhmFD/F4XE9p1m5L/LC1J5zsfaFdQqhEEbcmlhwKfSI7UGeQ5/Fuieqm+qki8azvW+vn7xGrpYKyIe5Tsj+NC7HtOhYwhoQS76hKOrjpCU7ospF8sK+9GHYbSrd6hHoJQgT7ddYMr0QYBCoXOjLT7Pxof+MKLNnR2YiJQe7sgYvx6h1Ql7wvwncJ078MGNFjFjKpH/geBREDpMrv2v/9GPlOiD1DXDNa2iyft4mTNoS0F9a9W9jK1TqwZUAAMI0l5iQqoxly21GruCasj9xG0A0gZPUzYpokajdsjjcEzccSlIpznEmPmAVtfrNPHqh7YP6HhBwj7t7trVoHCmYRsIPEgRM5ztDpLMlua+NQCXe2S51pz78OaT1oug5R+vA9ArKwFk66IpOCmzqmosmG4Q3f0WPTB5O6FTC1PEUc/2nPs7KS+qRNOumKnN6DKWWYeMeoe2kCq1nBOC3UGDqO5bOT2Gl5ya7aAftx0Q0Cosc5Z37fLQGhGpfiDHEMgpMGp0qCgZDCsDLxPaTyxSp76a/Q="
+
+script:
+  - GOBUILD=${GOBUILD} make -j dist
+  - ls -la build
+
+after_success:
+  - export PR=https://api.github.com/repos/$TRAVIS_REPO_SLUG/pulls/$TRAVIS_PULL_REQUEST
+  - export BRANCH=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH; else echo `curl -s $PR | jq -r .head.ref`; fi)
+  - if [[ "$TRAVIS_PULL_REQUEST" != "false" ]]; then make -j docker DOCKER_USER=$DOCKER_USER DOCKER_PASS=$DOCKER_PASS TAG=pr-$TRAVIS_PULL_REQUEST COMMIT=$TRAVIS_COMMIT; fi
+  - if [[ "$TRAVIS_TAG" =~ ^v.*$ ]]; then make -j docker DOCKER_USER=$DOCKER_USER DOCKER_PASS=$DOCKER_PASS TAG=$TRAVIS_TAG COMMIT=$TRAVIS_COMMIT; fi
+  - if [[ "$BRANCH" == "master" ]]; then make -j docker DOCKER_USER=$DOCKER_USER DOCKER_PASS=$DOCKER_PASS TAG=latest COMMIT=$TRAVIS_COMMIT; fi
+
+deploy:
+  provider: releases
+  api_key:
+    secure: 62u7VxwythQ06tH+xg3atqcF55BJRDtcaNXoOOaOCZJi+d4cN1Cc0jrqiHAsKPymK7RT4rTMvWOAg9AAhS4zQN1XiW2nNcYbaUwxvmuGrZ4cg3HZtqw0LYIoBZx7gSg86JDDpyS4Pt7K/qtsl/D9NvQKNEDZ8R1thfFfi6iQyi5gA9GGkqLvFlOqtVd7NU56+9ft0GK0O+Sh/gcRbSNfM6AO21wrEbxYj3opsKN/Cyyqv7GMqJZmqbWO8fFcteOA2dict7B2yYTxivmUIS4WD9LNzYC8n18Ai8dXokjkd68yxho0rmJw13BgFg57zlNCP/PmhqhiO3c017Q48MbrmVQalBHKkrCxmHLohgmzv/WT4rmDGuKtiYOtL+tvn+0QJ5w5acOIuFyWIEQF9hXA2zVpQycWffhOHi4v6+1opN9WnbMhV+9bTVCxHIZ1WZrBtzm2Op0bh+2dbUau0Em4lSSXG/NwyPvW6oUU4dGrzmzZAGeILL4B7aEazEdkSjKAKIE0RT/6IM+IzQQ7m9tlSq9t+fQopr+nbrIsYVz6Nptv4K3dOCf1yKA6vhgmq2QLxj2Rh7ZOqXQDjH1Of3yQGfmB1PwoHRcU2smrAlr/LHSCrAe4jhOOYugzM0eKvKOlRfSMCgzSo4dK37XYnztnWRIvy2TOS/Cxp2lgs2ee0wE=
+  file:
+    - build/nomad-crashloop-detector-linux-amd64
+    - build/nomad-crashloop-detector-windows-amd64
+    - build/nomad-crashloop-detector-darwin-amd64
+  skip_cleanup: true
+  overwrite: true
+  on:
+    tags: true
+    repo: seatgeek/nomad-crashloop-detector
